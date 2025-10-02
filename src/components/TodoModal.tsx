@@ -1,28 +1,35 @@
-import React, { useState } from "react";
-import { useTodoState } from "../contexts/todoContext";
+import { useState, useEffect } from "react";
+import { useTodos } from "../contexts/TodoContext";
 import type { TodoStatus } from "../types/Todo";
+import { ActionType } from "../reducers/todoReducer";
 
 export default function TodoModal() {
-  const { todos, focusedTodoId, setFocusedTodoId, moveTodo, editTodo, deleteTodo } = useTodoState();
+  const { state, dispatch } = useTodos();
+  const todo = state.todos.find((t) => t.id === state.focusedTodoId);
 
-  const todo = todos.find((t) => t.id === focusedTodoId);
+  const [title, setTitle] = useState(todo?.title ?? "");
+  const [content, setContent] = useState(todo?.content ?? "");
 
-  const [title, setTitle] = useState(todo ? todo.title : "");
-  const [content, setContent] = useState(todo ? todo.content : "");
+  useEffect(() => {
+    if (todo) {
+      setTitle(todo.title);
+      setContent(todo.content ?? "");
+    }
+  }, [todo]);
 
-  if (focusedTodoId === null || !todo) return null;
+  if (!todo) return null;
 
   const statuses: TodoStatus[] = ["todo", "doing", "done"];
 
   const handleSave = () => {
-    editTodo(todo.id, title, content);
-    setFocusedTodoId(null);
+    dispatch({ type: ActionType.EDIT, id: todo.id, title, content });
+    dispatch({ type: ActionType.SET_FOCUSED_TODO, id: null });
   };
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      onClick={() => setFocusedTodoId(null)}
+      onClick={() => dispatch({ type: ActionType.SET_FOCUSED_TODO, id: null })}
     >
       <div
         className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-auto shadow-2xl p-6"
@@ -47,28 +54,29 @@ export default function TodoModal() {
               <button
                 key={s}
                 className="px-3 py-1 border rounded text-sm"
-                onClick={() => moveTodo(todo.id, s)}
+                onClick={() =>
+                  dispatch({ type: ActionType.MOVE, id: todo.id, status: s })
+                }
               >
                 Move to {s}
               </button>
             ))}
         </div>
         <div className="flex gap-2">
-          <button className="px-3 py-1 bg-blue-600 text-white rounded" onClick={handleSave}>
+          <button
+            className="px-3 py-1 bg-blue-600 text-white rounded"
+            onClick={handleSave}
+          >
             Save
           </button>
-                    <button
-                      className="px-3 py-1 border rounded text-red-600"
-                      onClick={() => {
-                        deleteTodo(todo.id);
-                        setFocusedTodoId(null);
-                      }}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          }
-         
+          <button
+            className="px-3 py-1 border rounded text-red-600"
+            onClick={() => dispatch({ type: ActionType.REMOVE, id: todo.id })}
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

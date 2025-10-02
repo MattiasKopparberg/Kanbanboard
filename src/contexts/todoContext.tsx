@@ -1,44 +1,21 @@
-import React, { createContext, useCallback, useMemo, useState } from "react";
-import type { Todo, TodoState, TodoStatus } from "../types/Todo";
+import { createContext, useContext, useReducer, type ReactNode } from "react";
+import { todoReducer, initialState, type TodoState, type Action } from "../reducers/todoReducer";
 
-export type TodoContextType = TodoState;
-
-export const TodoContext = createContext<TodoContextType | undefined>(undefined);
-
-export const TodoProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const [focusedTodoId, setFocusedTodoId] = useState<number | null>(null);
-
-  const addTodo = useCallback((title: string, content = "") => {
-    setTodos((prev) => [
-      ...prev,
-      { id: Date.now(), title: title.trim(), content: content.trim(), status: "todo" },
-    ]);
-  }, []);
-
-  const moveTodo = useCallback((id: number, status: TodoStatus) => {
-    setTodos((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
-  }, []);
-
-  const editTodo = useCallback((id: number, title: string, content: string) => {
-    setTodos((prev) => prev.map((t) => (t.id === id ? { ...t, title, content } : t)));
-  }, []);
-
-  const deleteTodo = useCallback((id: number) => {
-    setTodos((prev) => prev.filter((t) => t.id !== id));
-    setFocusedTodoId((current) => (current === id ? null : current));
-  }, []);
-
-  const value = useMemo<TodoContextType>(
-    () => ({ todos, addTodo, moveTodo, editTodo, deleteTodo, focusedTodoId, setFocusedTodoId }),
-    [todos, focusedTodoId, addTodo, moveTodo, editTodo, deleteTodo]
-  );
-
-  return <TodoContext.Provider value={value}>{children}</TodoContext.Provider>;
+type TodoContextValue = {
+  state: TodoState;
+  dispatch: React.Dispatch<Action>;
 };
 
-export const useTodoState = () => {
-  const ctx = React.useContext(TodoContext);
-  if (!ctx) throw new Error("useTodoState must be used inside TodoProvider");
-  return ctx;
-};
+const TodoContext = createContext<TodoContextValue | undefined>(undefined);
+
+export function TodoProvider({ children }: { children: ReactNode }) {
+  const [state, dispatch] = useReducer(todoReducer, initialState);
+
+  return <TodoContext.Provider value={{ state, dispatch }}>{children}</TodoContext.Provider>;
+}
+
+export function useTodos() {
+  const context = useContext(TodoContext);
+  if (!context) throw new Error("useTodos must be used within TodoProvider");
+  return context;
+}

@@ -3,7 +3,7 @@ export type TodoStatus = "todo" | "doing" | "done";
 export interface Todo {
   id: number;
   title: string;
-  content: string;
+  content?: string;
   status: TodoStatus;
 }
 
